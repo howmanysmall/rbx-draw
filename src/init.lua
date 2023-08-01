@@ -36,6 +36,22 @@ local ORIGINAL_DEFAULT_COLOR = Color3.fromRGB(255, 0, 0)
 local Draw = {}
 Draw._defaultColor = ORIGINAL_DEFAULT_COLOR
 
+--[=[
+	Retrieves the default parent for the current execution context.
+	@return Instance
+]=]
+function Draw.getDefaultParent(): Instance
+	if not RunService:IsRunning() then
+		return Workspace.CurrentCamera
+	end
+
+	if RunService:IsServer() then
+		return Workspace
+	else
+		return Workspace.CurrentCamera
+	end
+end
+
 local function sanitize(object: Instance)
 	for key in object:GetAttributes() do
 		object:SetAttribute(key, nil)
@@ -46,13 +62,20 @@ local function sanitize(object: Instance)
 	end
 end
 
+local WHITE_COLOR3 = Color3.fromRGB(255, 255, 255)
+local ONE_SCALE = UDim2.fromScale(1, 1)
+local UDIM2_X_0_5_Y_1 = UDim2.fromScale(0.5, 1)
+local MAX_SIZE = Vector2.new(1024, 1e6)
+local VECTOR2_X_0_5_Y_1 = Vector2.new(0.5, 1)
+local VECTOR2_X_0_Y_0_5 = Vector2.new(0, 0.5)
+
 local function textOnAdornee(adornee: Instance, text: string, color: Color3?)
 	local TEXT_HEIGHT_STUDS = 2
 	local PADDING_PERCENT_OF_LINE_HEIGHT = 0.5
 
 	local billboardGui = Instance.new("BillboardGui")
 	billboardGui.Name = "DebugBillboardGui"
-	billboardGui.SizeOffset = Vector2.new(0, 0.5)
+	billboardGui.SizeOffset = VECTOR2_X_0_Y_0_5
 	billboardGui.ExtentsOffset = Vector3.yAxis
 	billboardGui.AlwaysOnTop = true
 	billboardGui.Adornee = adornee
@@ -60,9 +83,9 @@ local function textOnAdornee(adornee: Instance, text: string, color: Color3?)
 
 	local background = Instance.new("Frame")
 	background.Name = "Background"
-	background.Size = UDim2.fromScale(1, 1)
-	background.Position = UDim2.fromScale(0.5, 1)
-	background.AnchorPoint = Vector2.new(0.5, 1)
+	background.Size = ONE_SCALE
+	background.Position = UDIM2_X_0_5_Y_1
+	background.AnchorPoint = VECTOR2_X_0_5_Y_1
 	background.BackgroundTransparency = 0.3
 	background.BorderSizePixel = 0
 	background.BackgroundColor3 = color or Draw._defaultColor
@@ -74,12 +97,12 @@ local function textOnAdornee(adornee: Instance, text: string, color: Color3?)
 	textLabel.TextSize = 32
 	textLabel.BackgroundTransparency = 1
 	textLabel.BorderSizePixel = 0
-	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	textLabel.Size = UDim2.fromScale(1, 1)
+	textLabel.TextColor3 = WHITE_COLOR3
+	textLabel.Size = ONE_SCALE
 	textLabel.Font = if tonumber(text) then Enum.Font.RobotoMono else Enum.Font.GothamMedium
 	textLabel.Parent = background
 
-	local textSize = TextService:GetTextSize(textLabel.Text, textLabel.TextSize, textLabel.Font, Vector2.new(1024, 1e6))
+	local textSize = TextService:GetTextSize(textLabel.Text, textLabel.TextSize, textLabel.Font, MAX_SIZE)
 	local lines = textSize.Y / textLabel.TextSize
 
 	local paddingOffset = textLabel.TextSize * PADDING_PERCENT_OF_LINE_HEIGHT
@@ -383,6 +406,10 @@ end
 
 Draw.labeledPoint = Draw.labelledPoint
 
+local X_COLOR = Color3.fromRGB(191, 63, 63)
+local Y_COLOR = Color3.fromRGB(63, 191, 63)
+local Z_COLOR = Color3.fromRGB(63, 63, 191)
+
 --[=[
 	Renders a CFrame in 3D space. Includes each axis.
 
@@ -400,13 +427,13 @@ function Draw.cframe(cframe: CFrame)
 	local position = cframe.Position
 	Draw.point(position, nil, model, 0.1)
 
-	local xRay = Draw.ray(Ray.new(position, cframe.XVector), Color3.fromRGB(191, 63, 63), model, 0.1)
+	local xRay = Draw.ray(Ray.new(position, cframe.XVector), X_COLOR, model, 0.1)
 	xRay.Name = "XVector"
 
-	local yRay = Draw.ray(Ray.new(position, cframe.YVector), Color3.fromRGB(63, 191, 63), model, 0.1)
+	local yRay = Draw.ray(Ray.new(position, cframe.YVector), Y_COLOR, model, 0.1)
 	yRay.Name = "YVector"
 
-	local zRay = Draw.ray(Ray.new(position, cframe.ZVector), Color3.fromRGB(63, 63, 191), model, 0.1)
+	local zRay = Draw.ray(Ray.new(position, cframe.ZVector), Z_COLOR, model, 0.1)
 	zRay.Name = "ZVector"
 
 	model.Parent = Draw.getDefaultParent()
@@ -587,13 +614,16 @@ function Draw.screenPointLine(pointA: Vector3, pointB: Vector3, parent: Instance
 	return frame
 end
 
+local SCREEN_POINT_COLOR = Color3.fromRGB(255, 25, 25)
+local SCREEN_POINT_RADIUS = UDim.new(0.5, 0)
+
 function Draw.screenPoint(position: Vector3, parent: Instance, color: Color3?, diameter: number?)
 	local trueDiameter = if diameter then diameter else 25
 
 	local frame = Instance.new("Frame")
 	frame.Name = "DebugScreenPoint"
 	frame.Size = UDim2.fromOffset(trueDiameter, trueDiameter)
-	frame.BackgroundColor3 = color or Color3.fromRGB(255, 25, 25)
+	frame.BackgroundColor3 = color or SCREEN_POINT_COLOR
 	frame.BackgroundTransparency = 0.5
 	frame.Position = UDim2.fromScale(position.X, position.Y)
 	frame.AnchorPoint = CENTER_VECTOR2
@@ -601,7 +631,7 @@ function Draw.screenPoint(position: Vector3, parent: Instance, color: Color3?, d
 	frame.ZIndex = 20000
 
 	local uiCorner = Instance.new("UICorner")
-	uiCorner.CornerRadius = UDim.new(0.5, 0)
+	uiCorner.CornerRadius = SCREEN_POINT_RADIUS
 	uiCorner.Parent = frame
 
 	frame.Parent = parent
@@ -663,24 +693,7 @@ function Draw.ring(ringPosition: Vector3, ringNormal: Vector3, ringRadius: numbe
 	end
 
 	folder.Parent = parent or Draw.getDefaultParent()
-
 	return folder
-end
-
---[=[
-	Retrieves the default parent for the current execution context.
-	@return Instance
-]=]
-function Draw.getDefaultParent(): Instance
-	if not RunService:IsRunning() then
-		return Workspace.CurrentCamera
-	end
-
-	if RunService:IsServer() then
-		return Workspace
-	else
-		return Workspace.CurrentCamera
-	end
 end
 
 return Draw

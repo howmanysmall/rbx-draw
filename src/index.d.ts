@@ -8,6 +8,8 @@
  * This library should not be used to render things in production for
  * normal players, as it is optimized for debug experience over performance.
  *
+ * @see https://quenty.github.io/NevermoreEngine/api/Draw/
+ *
  * @example
  * //  A sample of a few API uses
  * Draw.point(Vector3.zero);
